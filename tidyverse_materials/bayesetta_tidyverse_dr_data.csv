@@ -1,4 +1,4 @@
-drug,dose,concentration,response,temp_C,date
+drug,dose,concentration,normalized_response,temp_C,date
 A,1.00E-12,M,0.877472219,25,5/24/2022
 A,1.00E-12,M,0.903847316,25.1,5/24/2022
 a,1.00E-12,M,0.831293114,25,5/24/2022

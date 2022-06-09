@@ -1,0 +1,200 @@
+---
+title: "Bayesian Dose Response Modeling"
+output: html_document
+---
+
+The code block below provides the code required to install the BayesPharma 
+package.
+
+```{r}
+# install.packages("remotes")
+# remotes::install_github("maomlab/BayesPharma")
+```
+
+Then, we need to load the library. All the dependencies packages will be loaded
+as well.
+```{r}
+library(dplyr)
+library(BayesPharma)
+```
+
+
+Load the clean dataset below. 
+```{r}
+clean_dr_data <- readr::read_csv("C:/Users/marti/Documents/Bayesetta_Workshop/dose_response_modeling/clean_bayesetta_dr_data.csv")
+dr_data <- clean_dr_data
+dr_data
+```
+
+To do a dose response relationship curve analysis, we need to have the 
+concentration to be in the logarithmic base 10 scale. 
+The BayesPharma package has a function to calculate that and add a column 
+automatically. Use the `calculate_log_dose()` function to add a *log_dose* to 
+the data.frame. Because the dose column is labelled "dose" 
+and the dose values are in molar concentration we can use the defaults:
+*dose_col = dose* and *molar_concentration = 1*.
+To find information about the inputs for the BayesPharma functions, go to the 
+'Packages' tab and click on "BayesPharma".
+```{r}
+dr_data <- dr_data %>% calculate_log_dose()
+dr_data
+```
+
+The BayesPharma package comes with limitations, so we have to change the column 
+names to be compatible with BayesPharma functions. The response column name must 
+be "response" and the log dose column name must be "log_dose". The 
+`calculate_log_dose()` function automatically labels the new log dose column 
+"log_dose". 
+
+Use the `change_col_names()`function to change the "percent_response" column 
+name. 
+
+```{r}
+dr_data <- dr_data %>% change_col_names(response_col_name = percent_response)
+dr_data
+```
+
+Time to get into the Bayesian analysis!
+First, we will run the analysis with top (max response) parameter prior set to 
+a constant value of 100 because top is normalized to 100 and the default weakly 
+informative priors for ic50, hill and bottom. 
+
+The level of informativeness of the priors will affect how much influence the
+priors have on the model.
+
+Use the `dr_priors()` function and set *top = 100*. 
+```{r}
+data_priors <- dr_priors(top = 100)
+data_priors
+```
+
+Then, we will set inits to values close to parameter estimates to help with 
+model convergence. The inits are the starting values for the mcmc chains of each 
+parameter. The default inits: ec50 = -9, hill = -1, top = 100, bottom = 0.
+
+```{r}
+data_inits <- dr_inits()
+```
+
+Before running the model, we will verify that the prior distributions
+cover a plausible range of values for each parameter. To do this, we want to 
+sample only from the prior distributions by adding  *sample_prior = "only"* as 
+an argument to the `dr_model()` function.
+For the *formula* argument, we will use the BayesPharma `dr_formula()` function.
+We can use the default argument for the formula for evaluating the prior. 
+Set *data* to the dr_data, *priors* to the priors we defined above and *inits* 
+as the inits we defined above.
+
+```{r}
+data_sample_priors <- dr_model(
+  data = dr_data,
+  formula = dr_formula(), 
+  priors = data_priors,
+  inits = data_inits,
+  sample_prior = "only")
+data_sample_priors
+```
+
+Plot the prior distributions using the `density_distributions()` function. We
+can use this to evaluate the prior distributions for each parameter. 
+```{r}
+density_distributions(data_sample_priors,
+                      half_max_label = "ic50",
+                      title_label = "Prior Density Distributions")
+```
+
+The prior distributions cover a broad plausible range of values. Now we are 
+going to fit the model!
+---
+
+We want to estimate the values separately for each drug, therefore, we need to
+set *predictors = 0 + drug* for the `dr_formula()`. 
+```{r}
+data_model <- dr_model(
+  data = dr_data,
+  formula = dr_formula(predictors = 0 + drug), 
+  priors = data_priors,
+  inits = data_inits)
+```
+
+
+
+```{r}
+data_model
+```
+
+
+The model ran without any warning messages, Rhat for all parameters is 1.00 
+(NA for top because it was set to a constant value of 100), and Bulk and Tail 
+ESS are high. We can check the mixing and convergence of the mcmc chains using 
+`traceplot()`. Set *predictors_col_name = 'drug'* and *half_max_label = 'ic50'*.
+```{r}
+data_model %>% traceplot(predictors_col_name = 'drug',
+                         half_max_label = "ic50")
+```
+
+The mcmc chains appear to have mixed well throughout the model run. Therefore, 
+we are in good shape to move forward with the analysis.
+
+---
+We can plot a posterior predictive check to check if the data generated from the 
+posterior distribution fits the observed data. Use `plot_pp_check()` and set 
+*model* to our fitted model, *plot_type = "dens_overlay_grouped"* and
+*group = drug*. 
+
+The observed data is the dark blue line and the simulated data are the 
+light blue lines.
+
+```{r}
+plot_pp_check(data_model,
+              plot_type = "dens_overlay_grouped",
+              group = 'drug')
+
+```
+
+
+Let's plot the prior and posterior distributions of the parameters (prior is 
+pink and posterior is teal). this can be useful if you are interested in 
+comparing the initial prior with the posterior distribution produced by the 
+model. 
+Include the fitted model, set *predictors_col_name = "drug"* and 
+*half_max_label = "ic50"*.
+
+```{r}
+prior_posterior_densities(data_model,
+                          predictors_col_name = "drug",
+                          half_max_label = "ic50")
+```
+
+Let's plot  the posterior distributions for each parameter 
+with the confidence intervals and mean. This is a useful visual of the model 
+results. the same arguments as the plot above can be used here. 
+
+```{r}
+posterior_densities(data_model, 
+                     predictors_col_name = "drug", 
+                     half_max_label = "ic50")
+```
+
+Finally we will plot the dose response curves! The plot is a sample of 50 
+sigmoid dose-response curves from the posterior distribution (purple) and 
+the median quantile intervals. Set *model* as our fitted model, 
+*data* to the dr_data, *predictors_col_name = "drug"*, *facet_var = drug*.
+
+```{r}
+posterior_draws_plot(model = data_model, data = dr_data, 
+                     predictors_col_name = "drug", facet_var = drug)
+
+# model, data, predictors_col_name = "na",
+# lower = -12, upper = -3, n = 50,
+# facet_var, point_size = 0.75,
+# jitter_height = 0, jitter_width = 0,
+# title = "Dose-Response Posterior Draws",
+# xlab = "Log[Molar]", ylab = "Response"
+```
+
+
+
+
+
+
