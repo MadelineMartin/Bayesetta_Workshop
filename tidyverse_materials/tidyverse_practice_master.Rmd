@@ -17,7 +17,7 @@ library(tidymodels)
 Now, we are going to load in the "bayesetta_tidyverse_dr_data.csv" using 
 readr::read_csv()
 ```{r}
-dr_data_orig <- readr::read_csv("C:/Users/marti/Documents/Bayesetta_Workshop/bayesetta_tidyverse_dr_data.csv")
+dr_data_orig <- readr::read_csv("local_path/Bayesetta_Workshop/tidyverse_materials/bayesetta_tidyverse_dr_data.csv")
 dr_data <- dr_data_orig
 dr_data
 ```
@@ -117,6 +117,6 @@ local path for the workshop and a new file name
 
 ```{r}
 readr::write_csv(dr_data, 
-                 "C:/Users/marti/Documents/Bayesetta_Workshop/clean_bayesetta_dr_data.csv")
+                 "local_path/Bayesetta_Workshop/dose_response_modeling/clean_bayesetta_dr_data.csv")
 ```
 

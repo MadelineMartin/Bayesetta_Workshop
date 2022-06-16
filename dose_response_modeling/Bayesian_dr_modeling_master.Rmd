@@ -47,7 +47,7 @@ be "response" and the log dose column name must be "log_dose". The
 "log_dose". 
 
 Use the `change_col_names()`function to change the "percent_response" column 
-name. 
+name to response using *response_col_name = percent_response*. 
 
 ```{r}
 dr_data <- dr_data %>% change_col_names(response_col_name = percent_response)
@@ -72,7 +72,8 @@ data_priors
 
 Then, we will set inits to values close to parameter estimates to help with 
 model convergence. The inits are the starting values for the mcmc chains of each 
-parameter. The default inits: ec50 = -9, hill = -1, top = 100, bottom = 0.
+parameter. The default inits for *dr_inits()*: ec50 = -9, hill = -1, top = 100, 
+bottom = 0.
 
 ```{r}
 data_inits <- dr_inits()
@@ -100,8 +101,11 @@ data_sample_priors
 ```
 
 Plot the prior distributions using the `density_distributions()` function. We
-can use this to evaluate the prior distributions for each parameter. The priors
-appear to cover a broad range of response values including extreme responses. 
+can use this to evaluate the prior distributions for each parameter. Set 
+*half_max_label = "ic50"* and *title_label = "Prior Density Distributions"*. 
+
+The priors appear to cover a broad range of response values including extreme 
+responses. 
 ```{r}
 density_distributions(data_sample_priors,
                       half_max_label = "ic50",
@@ -113,7 +117,7 @@ density_distributions(data_sample_priors,
 Now we are going to run our model. 
 
 We want to estimate the values separately for each drug, therefore, we need to
-set *predictors = 0 + drug* for the `dr_formula()`. 
+set *predictors = 0 + drug* in the `dr_formula()`. 
 ```{r}
 data_model <- dr_model(
   data = dr_data,
@@ -127,7 +131,8 @@ data_model
 ```
 
 We can check the mixing and convergence of the mcmc chains using 
-`traceplot()`. Set *predictors_col_name = 'drug'* and *half_max_label = 'ic50'*.
+`traceplot()`. Set set *model* to our fitted model, 
+*predictors_col_name = 'drug'* and *half_max_label = 'ic50'*.
 The model ran without warning messages meaning there were no parameter value 
 problems or mcmc conflicts. The bulk and tail ESS indicate high resolution and 
 stability. The R-hat for each parameter equals 1.00 and the traceplot shows the 
@@ -156,11 +161,13 @@ plot_pp_check(data_model,
 
 ```
 
-Let's plot the prior and posterior distributions of the parameters (prior is 
-pink and posterior is teal). This can be useful for comparing the density 
-distribution of the prior and posterior.
+Let's plot the prior and posterior distributions of the parameters using 
+`prior_posterior_densities()`(prior is pink and posterior is teal). 
 Include the fitted model, set *predictors_col_name = "drug"* and 
 *half_max_label = "ic50"*.
+
+This can be useful for comparing the density distribution of the prior and 
+posterior.
 
 One can interpret that the bottom parameter for drugs A and D has a high degree 
 of uncertainty because of the low density, broad posterior distribution that 
@@ -176,8 +183,9 @@ prior_posterior_densities(data_model,
 ```
 
 Let's plot the posterior distributions for each parameter 
-with the confidence intervals and mean. This is a useful visual of the model 
-results and to highlight the mode and high density intervals. 
+with the confidence intervals and mean using `posterior_densities()`. This is a
+useful visual of the model results and to highlight the mode and high density 
+intervals. 
 The same arguments as the plot above can be used here. 
 
 ```{r}
