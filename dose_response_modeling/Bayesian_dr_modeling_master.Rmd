@@ -55,10 +55,12 @@ dr_data
 ```
 
 Time to get into the Bayesian analysis!
-First, we will run the analysis with top (max response) parameter prior set to 
-a constant value of 100 because top is normalized to 100 and the default weakly 
-informative priors for ic50, hill and bottom. 
-
+For the priors, we are going to use a normal distribution because the response
+values are continuous. 
+We will run the analysis with top (max response) parameter prior set to 
+a constant value of 100 because top is normalized to 100 and the default broad
+priors for ic50, hill and bottom. Broad priors represent unbiased uncertainty 
+and provide an opportunity for extreme responses.
 The level of informativeness of the priors will affect how much influence the
 priors have on the model.
 
@@ -84,6 +86,8 @@ For the *formula* argument, we will use the BayesPharma `dr_formula()` function.
 We can use the default argument for the formula for evaluating the prior. 
 Set *data* to the dr_data, *priors* to the priors we defined above and *inits* 
 as the inits we defined above.
+We will use the default response distribution of the model 
+(*family = gaussian()*).
 
 ```{r}
 data_sample_priors <- dr_model(
@@ -96,16 +100,17 @@ data_sample_priors
 ```
 
 Plot the prior distributions using the `density_distributions()` function. We
-can use this to evaluate the prior distributions for each parameter. 
+can use this to evaluate the prior distributions for each parameter. The priors
+appear to cover a broad range of response values including extreme responses. 
 ```{r}
 density_distributions(data_sample_priors,
                       half_max_label = "ic50",
                       title_label = "Prior Density Distributions")
 ```
 
-The prior distributions cover a broad plausible range of values. Now we are 
-going to fit the model!
+
 ---
+Now we are going to run our model. 
 
 We want to estimate the values separately for each drug, therefore, we need to
 set *predictors = 0 + drug* for the `dr_formula()`. 
@@ -117,24 +122,21 @@ data_model <- dr_model(
   inits = data_inits)
 ```
 
-
-
 ```{r}
 data_model
 ```
 
-
-The model ran without any warning messages, Rhat for all parameters is 1.00 
-(NA for top because it was set to a constant value of 100), and Bulk and Tail 
-ESS are high. We can check the mixing and convergence of the mcmc chains using 
+We can check the mixing and convergence of the mcmc chains using 
 `traceplot()`. Set *predictors_col_name = 'drug'* and *half_max_label = 'ic50'*.
+The model ran without warning messages meaning there were no parameter value 
+problems or mcmc conflicts. The bulk and tail ESS indicate high resolution and 
+stability. The R-hat for each parameter equals 1.00 and the traceplot shows the 
+chains mixed well indicating the chains converged. 
+
 ```{r}
 data_model %>% traceplot(predictors_col_name = 'drug',
                          half_max_label = "ic50")
 ```
-
-The mcmc chains appear to have mixed well throughout the model run. Therefore, 
-we are in good shape to move forward with the analysis.
 
 ---
 We can plot a posterior predictive check to check if the data generated from the 
@@ -143,7 +145,9 @@ posterior distribution fits the observed data. Use `plot_pp_check()` and set
 *group = drug*. 
 
 The observed data is the dark blue line and the simulated data are the 
-light blue lines.
+light blue lines. The simulated data appears to represent the observed data 
+decently well. The model represents the observed data for some drugs better 
+than others. 
 
 ```{r}
 plot_pp_check(data_model,
@@ -152,13 +156,18 @@ plot_pp_check(data_model,
 
 ```
 
-
 Let's plot the prior and posterior distributions of the parameters (prior is 
-pink and posterior is teal). this can be useful if you are interested in 
-comparing the initial prior with the posterior distribution produced by the 
-model. 
+pink and posterior is teal). This can be useful for comparing the density 
+distribution of the prior and posterior.
 Include the fitted model, set *predictors_col_name = "drug"* and 
 *half_max_label = "ic50"*.
+
+One can interpret that the bottom parameter for drugs A and D has a high degree 
+of uncertainty because of the low density, broad posterior distribution that 
+greatly overlaps with the broad prior. For drugs B, C and G have a low degree 
+of uncertainty because of the high density, narrow posterior distribution that 
+narrowly overlaps with the broad distribution. Drug F has a medium degree of 
+uncertainty.  
 
 ```{r}
 prior_posterior_densities(data_model,
@@ -166,9 +175,10 @@ prior_posterior_densities(data_model,
                           half_max_label = "ic50")
 ```
 
-Let's plot  the posterior distributions for each parameter 
+Let's plot the posterior distributions for each parameter 
 with the confidence intervals and mean. This is a useful visual of the model 
-results. the same arguments as the plot above can be used here. 
+results and to highlight the mode and high density intervals. 
+The same arguments as the plot above can be used here. 
 
 ```{r}
 posterior_densities(data_model, 
@@ -185,16 +195,5 @@ the median quantile intervals. Set *model* as our fitted model,
 posterior_draws_plot(model = data_model, data = dr_data, 
                      predictors_col_name = "drug", facet_var = drug)
 
-# model, data, predictors_col_name = "na",
-# lower = -12, upper = -3, n = 50,
-# facet_var, point_size = 0.75,
-# jitter_height = 0, jitter_width = 0,
-# title = "Dose-Response Posterior Draws",
-# xlab = "Log[Molar]", ylab = "Response"
 ```
-
-
-
-
-
 
