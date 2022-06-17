@@ -55,10 +55,18 @@ Use `readr::parse_date()` to fix the date format. Use `format = "%m/%d/%Y"`
 ```
 
 To practice more tidyverse, let's use `mutate()` the data.frame to add a 
-`percent_response` column with sigfigs to one decimal place.  
+`percent_response` column with sigfigs to one decimal place and relocate 
+(`relocate()`) it to before "normalized_response".  
 
 ```{r}
  
+```
+
+Let's group by "drug" and use `summarise()` to see the min, max percent 
+response, and number of observations (`n()`).
+
+```{r}
+
 ```
 
 Let's look at just drug A's dose and percent response in order of decreasing 
@@ -72,7 +80,7 @@ Assign this to a variable named `dr_drug_A`.
 Now let's make a simple ggplot (`ggplot()`) of the drug A data points 
 (`geom_point()`). You will need to add `scale_x_log10()` for the best display of 
 the data points and plot. Try adding a theme (`theme_bw()`), labels (`labs()`), 
-and changing colors, size, etc.!
+and changing colors, point and text size, etc.!
 
 ```{r}
 ggplot(dr_drug_A) +
@@ -91,8 +99,8 @@ each drug into their own plot.
 There's some of the basics of tidyverse! We will use this dataset for dose
 response modeling later!
 
-Save the cleaned data using `readr::write_csv()`. first put the data name then your 
-local path for the workshop and a new file name 
+Save the cleaned data using `readr::write_csv()`. first put the data name then 
+your local path for the workshop and a new file name 
 (i.e. "clean_bayesetta_dr_data.csv").
 
 ```{r}

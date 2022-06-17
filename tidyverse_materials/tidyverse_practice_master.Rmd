@@ -17,7 +17,7 @@ library(tidymodels)
 Now, we are going to load in the "bayesetta_tidyverse_dr_data.csv" using 
 readr::read_csv()
 ```{r}
-dr_data_orig <- readr::read_csv("local_path/Bayesetta_Workshop/tidyverse_materials/bayesetta_tidyverse_dr_data.csv")
+dr_data_orig <- readr::read_csv("C:/Users/marti/Documents/Bayesetta_Workshop/tidyverse_materials/bayesetta_tidyverse_dr_data.csv")
 dr_data <- dr_data_orig
 dr_data
 ```
@@ -59,16 +59,27 @@ dr_data
 ```
 
 To practice more tidyverse, let's use `mutate()` the data.frame to add a 
-`percent_response` column with sigfigs to one decimal place.  
+`percent_response` column with sigfigs to one decimal place and relocate 
+(`relocate()`) it to before "normalized_response".  
 
 ```{r}
 dr_data <- dr_data %>%
-  mutate(percent_response = signif(dr_data$response*100, 3))
+  mutate(percent_response = signif(dr_data$normalized_response*100, 3)) %>%
+  relocate(percent_response, .before = normalized_response)
 dr_data
 ```
 
+Let's group by "drug" and use `summarise()` to see the min, max percent 
+response, and number of observations (`n()`).
+```{r}
+dr_data %>% group_by(drug) %>%
+  summarise(min_perc_resp = min(percent_response), 
+            max_perc_resp = max(percent_response),
+            n_observations = n())
+```
+
 Let's look at just drug A's dose and percent response in order of decreasing 
-dose using `filter()`, `select()`, and `arrange()`. 
+dose using `filter()`, `select()`, and `arrange()`.
 Assign this to a variable named `dr_drug_A`.
 
 ```{r}
@@ -82,7 +93,7 @@ dr_drug_A
 Now let's make a simple ggplot (`ggplot()`) of the drug A data points 
 (`geom_point()`). You will need to add `scale_x_log10()` for the best display of 
 the data points and plot. Try adding a theme (`theme_bw()`), labels (`labs()`), 
-and changing colors, size, etc.!
+and changing colors, point and text size, etc.!
 ```{r}
 ggplot(dr_drug_A) +
   theme_bw() +
@@ -90,6 +101,7 @@ ggplot(dr_drug_A) +
        caption = "this is a simulated dataset",
        y = "Response (%)",
        x = "Dose (M)") +
+  theme(axis.text = element_text(size = 12)) +
   geom_point(aes(x = dose, y = percent_response),
              size = 4, color = "magenta") +
   scale_x_log10()
