@@ -107,3 +107,75 @@ your local path for the workshop and a new file name
 
 ```
 
+
+---
+
+##Plate Reader Example
+
+Testing various concentrations of fluconazole of C. auris. There is one 
+replicate (2 columns) of wild type and 2 mutants (ace2 and ace2_ACE2) 
+of C.auris. 
+
+Load the excel file using `readxl::read_excel()`. Because of how the columns are 
+structured in the excel file, you will probably want to rename the columns of 
+the replicate. You can either use `dplyr::rename()` or add a vector of 
+`col_names` when loading the excel file. I recommend simply adding an _(number) 
+or _rep to the strain name. 
+
+```{r}
+
+```
+
+Now we need to get the tibble (tidyverse data.frame) in a structure better for
+analysis. 
+
+Here we will use `tidyr::pivot_longer()`. the `cols` argument will be all the
+strains You can either type all the column headers for the strains or exclude
+the Fluconazole column by adding an `!` in front of the Fluconazole column 
+name. Then, create a column name for `name_to` and `values_to`.
+
+```{r}
+
+```
+
+As we continue the analysis, having different name for the replicate is not 
+ideal for plotting and modeling.
+To remove the added numbers or letters to the name of the replicate, we can use
+dplyr and stringr functions to remove them. 
+
+1. Use mutate to change the strain column or create a new column. 
+2. Use `stringr::str_extract()` on the strain column and for the pattern use
+a regular expression to extract all the strain names.
+3. Pipe the `str_extract()` to `str_remove()` and include the pattern you want
+removed from the strain names (i.e. "_1" or _"rep").
+
+```{r}
+
+```
+
+Now we need to convert the Fluconazole values from ug/mL to molar concentration. 
+The molecular weight of Fluconazole is 306.271 g/mol. 
+
+Add a new column with the converted values for Fluconazole. 
+
+```{r}
+# ug/mL * (10-6g / 1ug) * (1000mL/ 1L) / 306.271 g/mol = M
+
+
+```
+
+
+Now let's create a couple plots to see what the data looks like! 
+
+Do one plot with each strain as a different color and one plot using 
+`facet_wrap()`
+
+```{r}
+
+
+```
+
+
+```{r}
+
+```
