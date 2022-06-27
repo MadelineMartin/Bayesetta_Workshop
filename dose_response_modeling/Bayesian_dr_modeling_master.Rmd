@@ -205,3 +205,142 @@ posterior_draws_plot(model = data_model, data = dr_data,
 
 ```
 
+---
+It is best practice to conduct a sensitivity analysis of the priors to see if 
+you get similar results as the other broad uncertain priors. 
+
+Let's adjust the priors to be:
+ec50 ~ normal(-6.5, 3)
+hill ~ normal(-0.5, 1), ub = 0.01
+bottom ~ normal(15, 15)
+top ~ 100
+
+to change the priors you will need to type them as:
+`ec50 = brms::prior(normal(-6.5, 3), nlpar = "ec50")`
+`nlpar` stands for non-linear parameter.
+
+```{r}
+prior2 <- dr_priors(
+  ec50 = brms::prior(normal(-6.5, 3), nlpar = "ec50"),
+  hill = brms::prior(normal(0.5, 1), ub = 0.01, nlpar = "hill"),
+  bottom = brms::prior(normal(15,15), nlpar = "bottom"),
+  top = 100
+  )
+prior2
+```
+
+Let's sample the priors and plot the distributions. 
+```{r}
+data_sample_priors2 <- dr_model(
+  data = dr_data,
+  formula = dr_formula(), 
+  priors = prior2,
+  inits = data_inits,
+  sample_prior = "only")
+data_sample_priors2
+```
+
+
+```{r}
+density_distributions(data_sample_priors2,
+                      half_max_label = "ic50",
+                      title_label = "Prior2 Density Distributions")
+```
+
+
+Now, let's run the model using this set of priors
+
+```{r}
+model2 <- dr_model(
+  data = dr_data,
+  formula = dr_formula(predictors = 0 + drug), 
+  priors = prior2,
+  inits = data_inits)
+model2
+```
+
+
+Now let's see how the posterior distributions compare between the 2 models. 
+Below is a working function for plotting the 2 model distributions together. 
+
+```{r}
+compare_distributions <- function(model1, model2, 
+                                  predictors_col_name = "_Intercept",
+                                  half_max_label = "ec50",
+                                  title_label = "Density Distributions"){
+    posterior1 <- dplyr::bind_rows(
+      model1 %>%
+        tidybayes::tidy_draws() %>%
+        tidybayes::gather_variables() %>%
+        dplyr::mutate(sample_type = "model_1") %>%
+        dplyr::filter(!stringr::str_detect(.variable, "__$")) %>%
+        dplyr::filter(!stringr::str_detect(.variable, "sigma")) %>%
+        dplyr::filter(!stringr::str_detect(.variable, "lprior"))
+    ) %>%
+      dplyr::mutate(.variable = stringr::str_extract(.variable,
+                                                     "b_[a-zA-Z0-9]+.{1,100}") %>%
+                      stringr::str_remove("b_")) %>%
+      dplyr::mutate(.variable = stringr::str_extract(.variable,
+                                                     "[a-zA-Z0-9]+.{1,100}") %>%
+                      stringr::str_remove(predictors_col_name)) %>%
+      dplyr::mutate(.variable = stringr::str_extract(.variable,
+                                                     "[a-zA-Z0-9]+.{1,100}") %>%
+                      stringr::str_replace("ec50", half_max_label))
+    posterior2 <- dplyr::bind_rows(
+      model2 %>%
+        tidybayes::tidy_draws() %>%
+        tidybayes::gather_variables() %>%
+        dplyr::mutate(sample_type = "model_2") %>%
+        dplyr::filter(!stringr::str_detect(.variable, "__$")) %>%
+        dplyr::filter(!stringr::str_detect(.variable, "sigma")) %>%
+        dplyr::filter(!stringr::str_detect(.variable, "lprior"))
+    ) %>%
+      dplyr::mutate(.variable = stringr::str_extract(.variable,
+                                                     "b_[a-zA-Z0-9]+.{1,100}") %>%
+                      stringr::str_remove("b_")) %>%
+      dplyr::mutate(.variable = stringr::str_extract(.variable,
+                                                     "[a-zA-Z0-9]+.{1,100}") %>%
+                      stringr::str_remove(predictors_col_name)) %>%
+      dplyr::mutate(.variable = stringr::str_extract(.variable,
+                                                     "[a-zA-Z0-9]+.{1,100}") %>%
+                      stringr::str_replace("ec50", half_max_label))
+    
+  model_colors = c("model_1" = "green3", "model_2" = "tomato2")
+  
+  ggplot2::ggplot() +
+    ggplot2::theme_bw() +
+    ggplot2::theme(legend.position = "bottom") +
+    ggplot2::geom_density(data = posterior1,
+      ggplot2::aes(x = .value,
+                   fill = "model_1"),
+      color = "black",
+      alpha = .9) +
+    ggplot2::geom_density(data = posterior2,
+      ggplot2::aes( 
+                   x = .value,
+                   fill = "model_2"),
+      color = "black",
+      alpha = .9) +
+    ggplot2::ggtitle(
+      label = paste0(title_label)) +
+    ggplot2::facet_wrap(
+      facets = dplyr::vars(.variable),
+      scales = "free") +
+    ggplot2::scale_y_continuous("Density") +
+    ggplot2::scale_x_continuous("Parameter Value") +
+    ggplot2::scale_fill_manual(values = model_colors,
+                               )
+}
+
+```
+
+
+Now, run the function with the two models. 
+The 2 posterior distributions greatly overlap. This validates that our priors 
+truely are broad and unbiased. 
+```{r}
+compare_distributions(model1 = data_model, model2 = model2,
+                      predictors_col_name = "drug",
+                      half_max_label = "ic50")
+```
+
